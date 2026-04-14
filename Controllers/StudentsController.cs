@@ -122,7 +122,7 @@ public class StudentsController(IConfiguration config) : ControllerBase
                 Grade = grade
             });
         }
-        await reader.CloseAsync(); // ← must close reader before running another command on same connection
+        await reader.CloseAsync(); 
 
         foreach (var student in studentsWithGrade)
         {
@@ -139,8 +139,44 @@ public class StudentsController(IConfiguration config) : ControllerBase
     [HttpGet("report")]
     public async Task<IActionResult> Report()
     {
-        // Write code for the report generation logic.
-        return Ok();
+        using var conn = new MySqlConnection(_connectionString);
+        await conn.OpenAsync();
+
+        using var cmd = new MySqlCommand("""
+                                         SELECT
+                                             course,
+                                             COUNT(*) AS totalStudents,
+                                             AVG(marks) AS averageMarks,
+                                             SUM(CASE WHEN grade = 'A' THEN 1 ELSE 0 END) AS gradeA,
+                                             SUM(CASE WHEN grade = 'B' THEN 1 ELSE 0 END) AS gradeB,
+                                             SUM(CASE WHEN grade = 'C' THEN 1 ELSE 0 END) AS gradeC,
+                                             SUM(CASE WHEN grade = 'D' THEN 1 ELSE 0 END) AS gradeD
+                                         FROM Students
+                                         GROUP BY course
+                                         ORDER BY course
+                                         """, conn);
+
+        using var reader = await cmd.ExecuteReaderAsync();
+
+        var report = new List<object>();
+        while (await reader.ReadAsync())
+        {
+            report.Add(new
+            {
+                courseName = reader.GetString(0),
+                totalStudents = reader.GetInt32(1),
+                averageMarks = Math.Round(reader.GetDouble(2), 2),
+                gradeDistribution = new
+                {
+                    A = reader.GetInt32(3),
+                    B = reader.GetInt32(4),
+                    C = reader.GetInt32(5),
+                    D = reader.GetInt32(6)
+                }
+            });
+        }
+
+        return Ok(report);
     }
 
     [HttpDelete("{id}")]
