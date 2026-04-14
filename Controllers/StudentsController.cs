@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using data2410_api_v1.Models;
 
 namespace data2410_api_v1.Controllers;
@@ -22,10 +22,10 @@ public class StudentsController(IConfiguration config) : ControllerBase
     public async Task<ActionResult<List<Student>>> GetAll()
     {
         var students = new List<Student>();
-        using var conn = new SqlConnection(_connectionString);
+        using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        using var cmd = new SqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students", conn);
+        using var cmd = new MySqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students", conn);
         using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -45,10 +45,10 @@ public class StudentsController(IConfiguration config) : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<Student>> GetById(int id)
     {
-        using var conn = new SqlConnection(_connectionString);
+        using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        using var cmd = new SqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students WHERE Id = @Id", conn);
+        using var cmd = new MySqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students WHERE Id = @Id", conn);
         cmd.Parameters.AddWithValue("@Id", id);
 
         using var reader = await cmd.ExecuteReaderAsync();
@@ -67,10 +67,10 @@ public class StudentsController(IConfiguration config) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Student>> Create(Student student)
     {
-        using var conn = new SqlConnection(_connectionString);
+        using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        using var cmd = new SqlCommand(
+        using var cmd = new MySqlCommand(
             "INSERT INTO Students (Name, Course, Marks) OUTPUT INSERTED.Id VALUES (@Name, @Course, @Marks)", conn);
         cmd.Parameters.AddWithValue("@Name", student.Name);
         cmd.Parameters.AddWithValue("@Course", student.Course);
@@ -83,10 +83,10 @@ public class StudentsController(IConfiguration config) : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, Student updated)
     {
-        using var conn = new SqlConnection(_connectionString);
+        using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        using var cmd = new SqlCommand(
+        using var cmd = new MySqlCommand(
             "UPDATE Students SET Name = @Name, Course = @Course, Marks = @Marks WHERE Id = @Id", conn);
         cmd.Parameters.AddWithValue("@Id", id);
         cmd.Parameters.AddWithValue("@Name", updated.Name);
@@ -101,8 +101,37 @@ public class StudentsController(IConfiguration config) : ControllerBase
     public async Task<ActionResult<List<Student>>> CalculateGrades()
     {
         var studentsWithGrade = new List<Student>();
+        
+        using var conn = new MySqlConnection(_connectionString);
+        await conn.OpenAsync();
+        using var cmd = new MySqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students", conn);
+        using var reader = await cmd.ExecuteReaderAsync();
+        
+        while (await reader.ReadAsync())
+        {
+            var id = reader.GetInt32(0);
+            var marks = reader.GetInt32(3);
+            var grade = GetGrade(marks);
+    
+            studentsWithGrade.Add(new Student
+            {
+                Id = id,
+                Name = reader.GetString(1),
+                Course = reader.GetString(2),
+                Marks = marks,
+                Grade = grade
+            });
+        }
+        await reader.CloseAsync(); // ← must close reader before running another command on same connection
 
-        // Write code to calculate and update grades
+        foreach (var student in studentsWithGrade)
+        {
+            using var updateCmd = new MySqlCommand(
+                "UPDATE Students SET Grade = @grade WHERE Id = @id", conn);
+            updateCmd.Parameters.AddWithValue("@grade", student.Grade);
+            updateCmd.Parameters.AddWithValue("@id", student.Id);
+            await updateCmd.ExecuteNonQueryAsync();
+        }
 
         return studentsWithGrade;
     }
@@ -117,13 +146,14 @@ public class StudentsController(IConfiguration config) : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        using var conn = new SqlConnection(_connectionString);
+        using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
-        using var cmd = new SqlCommand("DELETE FROM Students WHERE Id = @Id", conn);
+        using var cmd = new MySqlCommand("DELETE FROM Students WHERE Id = @Id", conn);
         cmd.Parameters.AddWithValue("@Id", id);
 
         var rows = await cmd.ExecuteNonQueryAsync();
         return rows == 0 ? NotFound() : NoContent();
     }
+
 }

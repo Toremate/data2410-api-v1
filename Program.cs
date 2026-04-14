@@ -63,6 +63,45 @@ app.MapGet("/health", (IConfiguration config) =>
     }
 });
 
+// app.MapGet("/api/Studentssss", (IConfiguration config) =>
+//     {
+//         var cs = config.GetConnectionString("DefaultConnection");
+//         if (string.IsNullOrEmpty(cs))
+//         {
+//             return Results.Ok(new { database = "No connection string found", hint = "Add DefaultConnection in App Service > Environment variables > Connection strings" });
+//         }
+//
+//         try
+//         {
+//             using var conn = new MySqlConnection(cs);
+//             conn.Open();
+//             using var cmd = new MySqlCommand("SELECT * FROM Students", conn);
+//             using var reader = cmd.ExecuteReader();
+//
+//             var students = new List<object>();
+//             while (reader.Read())
+//             {
+//                 students.Add(new
+//                 {
+//                     id     = reader["id"],
+//                     name   = reader["name"],
+//                     course = reader["course"],
+//                     marks  = reader["marks"],
+//                     grade  = reader["grade"]
+//                 });
+//             }
+//
+//             return Results.Ok(students);
+//         }
+//         catch (Exception ex)
+//         {
+//             return Results.Ok(new { database = "Failed", error = ex.Message });
+//         }
+//         
+//     }
+//
+// );
+
 app.MapControllers();
 
 app.Run();
