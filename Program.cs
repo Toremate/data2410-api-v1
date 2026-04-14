@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using MySqlConnector;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,18 +15,17 @@ if (!string.IsNullOrEmpty(connectionString))
 {
     try
     {
-        using var conn = new SqlConnection(connectionString);
+        using var conn = new MySqlConnection(connectionString);
         conn.Open();
-        using var cmd = new SqlCommand("""
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Students')
-            CREATE TABLE Students (
-                Id INT IDENTITY(1,1) PRIMARY KEY,
-                Name NVARCHAR(100) NOT NULL,
-                Course NVARCHAR(100) NOT NULL,
-                Marks INT NOT NULL,
-                Grade NVARCHAR(2) NULL
-            )
-            """, conn);
+        using var cmd = new MySqlCommand("""
+                                          CREATE TABLE IF NOT EXISTS Students (
+                                              id INT AUTO_INCREMENT PRIMARY KEY,
+                                              name VARCHAR(255) NOT NULL,
+                                              course VARCHAR(255) NOT NULL,
+                                              marks INT NOT NULL,
+                                              grade VARCHAR(255)
+                                          )
+                                          """, conn);
         cmd.ExecuteNonQuery();
     }
     catch (Exception ex)
@@ -53,7 +53,7 @@ app.MapGet("/health", (IConfiguration config) =>
 
     try
     {
-        using var conn = new SqlConnection(cs);
+        using var conn = new MySqlConnection(cs);
         conn.Open();
         return Results.Ok(new { database = "Connected", server = conn.DataSource });
     }
