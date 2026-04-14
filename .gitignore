@@ -33,3 +33,4 @@ Properties/serviceDependencies*.json
 pdf-style.css
 *.iml
 *.xml
+appsettings.json
