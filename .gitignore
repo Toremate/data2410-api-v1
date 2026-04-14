@@ -31,3 +31,5 @@ Properties/serviceDependencies*.json
 
 # PDF styling
 pdf-style.css
+*.iml
+*.xml
