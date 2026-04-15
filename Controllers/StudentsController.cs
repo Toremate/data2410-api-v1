@@ -98,8 +98,9 @@ public class StudentsController(IConfiguration config) : ControllerBase
     }
 
     [HttpPost("calculate-grades")]
-    public async Task<ActionResult<List<Student>>> CalculateGrades()
+    public async Task<ActionResult<List<Student>>> CalculateGrades() 
     {
+        //SQL to get Students table
         var studentsWithGrade = new List<Student>();
         
         using var conn = new MySqlConnection(_connectionString);
@@ -107,6 +108,7 @@ public class StudentsController(IConfiguration config) : ControllerBase
         using var cmd = new MySqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students", conn);
         using var reader = await cmd.ExecuteReaderAsync();
         
+        // calculate and add grade to Students table
         while (await reader.ReadAsync())
         {
             var id = reader.GetInt32(0);
@@ -124,6 +126,7 @@ public class StudentsController(IConfiguration config) : ControllerBase
         }
         await reader.CloseAsync(); 
 
+        // update Students table with grades using SQL
         foreach (var student in studentsWithGrade)
         {
             using var updateCmd = new MySqlCommand(
@@ -142,6 +145,7 @@ public class StudentsController(IConfiguration config) : ControllerBase
         using var conn = new MySqlConnection(_connectionString);
         await conn.OpenAsync();
 
+        //SQL question to make report 
         using var cmd = new MySqlCommand("""
                                          SELECT
                                              course,
@@ -158,6 +162,7 @@ public class StudentsController(IConfiguration config) : ControllerBase
 
         using var reader = await cmd.ExecuteReaderAsync();
 
+        //make list of report for each course
         var report = new List<object>();
         while (await reader.ReadAsync())
         {
