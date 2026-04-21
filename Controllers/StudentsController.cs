@@ -108,7 +108,7 @@ public class StudentsController(IConfiguration config) : ControllerBase
         using var cmd = new MySqlCommand("SELECT Id, Name, Course, Marks, Grade FROM Students", conn);
         using var reader = await cmd.ExecuteReaderAsync();
         
-        // calculate and add grade to Students table
+        // calculate and add grade to studentsWithGrade list
         while (await reader.ReadAsync())
         {
             var id = reader.GetInt32(0);
